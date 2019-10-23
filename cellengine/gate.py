@@ -8,39 +8,8 @@ from .Gates.gate_util import create_gates
 
 
 @attr.s(repr=False)
-class Gate(object):
-    """A class representing a CellEngine gate.
-
-    Gates are geometric shapes that define boundaries within which events
-    (cells) must be contained to be considered part of a population.
-
-    Gates may be any one of RectangleGate, PolygonGate, EllipseGate, RangeGate,
-    QuadrantGate or SplitGate. See ``help(cellengine.Gate.<Gate Type>)`` for
-    specific args.
-
-    When tailoring a gate to a file, a new gate is created with the same GID as
-    the original gate, but with an fcs_file_id property set to the file to which
-    the gate is tailored. To create a tailored gate, first create a global
-    tailored gate by passing ``tailored_per_file=True`` and
-    ``fcs_file_id=None`` to a gate creation method. Subsequent tailored gates
-    may be created with ``tailored_per_file=True`` and ``gid=<global gate
-    gid>``.
-
-    The update and delete API endpoints accept requests by GID to make
-    for efficient updates to families of tailored gates.
-
-    Compound gates (quadrant and split) are made up of "sectors." Quadrant
-    gates have four sectors (upper-right, upper-left, lower-left, lower-right)
-    and split gates have two sectors (left and right). In addition to the
-    top-level GID (like simple gates), these gates have model.gids and names
-    lists that specify the GID and name for each sector, in the order shown
-    above. Populations using compound gates must reference these sector GIDs;
-    referencing the top-level GID of a compound gate is meaningless.
-    """
+class GateData(object):
     _properties = attr.ib(default={}, repr=False)
-
-    def __repr__(self):
-        return "Gate(_id=\'{0}\', name=\'{1}\', type={2})".format(self._id, self.name, self.type)
 
     _id = _helpers.GetSet('_id', read_only=True)
 
@@ -93,6 +62,41 @@ class Gate(object):
         """Extend the Munch class for a dict-like __repr__"""
         def __repr__(self):
             return '{0}'.format(dict.__repr__(self))
+
+
+@attr.s(repr=False)
+class Gate(GateData):
+    """A class representing a CellEngine gate.
+
+    Gates are geometric shapes that define boundaries within which events
+    (cells) must be contained to be considered part of a population.
+
+    Gates may be any one of RectangleGate, PolygonGate, EllipseGate, RangeGate,
+    QuadrantGate or SplitGate. See ``help(cellengine.Gate.<Gate Type>)`` for
+    specific args.
+
+    When tailoring a gate to a file, a new gate is created with the same GID as
+    the original gate, but with an fcs_file_id property set to the file to which
+    the gate is tailored. To create a tailored gate, first create a global
+    tailored gate by passing ``tailored_per_file=True`` and
+    ``fcs_file_id=None`` to a gate creation method. Subsequent tailored gates
+    may be created with ``tailored_per_file=True`` and ``gid=<global gate
+    gid>``.
+
+    The update and delete API endpoints accept requests by GID to make
+    for efficient updates to families of tailored gates.
+
+    Compound gates (quadrant and split) are made up of "sectors." Quadrant
+    gates have four sectors (upper-right, upper-left, lower-left, lower-right)
+    and split gates have two sectors (left and right). In addition to the
+    top-level GID (like simple gates), these gates have model.gids and names
+    lists that specify the GID and name for each sector, in the order shown
+    above. Populations using compound gates must reference these sector GIDs;
+    referencing the top-level GID of a compound gate is meaningless.
+    """
+
+    def __repr__(self):
+        return "Gate(_id=\'{0}\', name=\'{1}\', type={2})".format(self._id, self.name, self.type)
 
     # gate creation methods
 

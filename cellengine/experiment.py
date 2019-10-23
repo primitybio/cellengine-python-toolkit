@@ -1,24 +1,18 @@
 import attr
 from custom_inherit import doc_inherit
-from .client import session
+cellengine = __import__(__name__.split('.')[0])
 from . import _helpers
+from .population import Population
 from .fcsfile import FcsFile
 from .compensation import Compensation
 from .gate import Gate
 from . import Gates
+from .complex_population_creator import Complex_Population_Request
 
 
 @attr.s(repr=False)
-class Experiment(object):
-    """A class representing a CellEngine experiment.
-
-    Attributes
-        _properties (:obj:`dict`): Experiment properties; reqired.
-    """
+class ExperimentData(object):
     _properties = attr.ib()
-
-    def __repr__(self):
-        return "Experiment(_id=\'{0}\', name=\'{1}\')".format(self._id, self.name)
 
     _id = _helpers.GetSet('_id', read_only=True)
 
@@ -29,26 +23,6 @@ class Experiment(object):
         """List all files on the experiment"""
         url = "experiments/{0}/fcsfiles".format(self._id)
         return _helpers.base_list(url, FcsFile)
-
-    def get_fcsfile(self, _id=None, name=None):
-        return Gates.get_fcsfile(self._id, _id=_id, name=name)
-
-    @property
-    def populations(self):
-        """List all populations in the experiment"""
-        pass
-        # url = "experiments/{0}/populations".format(self._id)
-        # return _helpers.base_list(url, Population, experiment_id=self._id)
-
-    @property
-    def compensations(self):
-        url = "experiments/{0}/compensations".format(self._id)
-        return _helpers.base_list(url, Compensation)
-
-    @property
-    def gates(self):
-        url = "experiments/{0}/gates".format(self._id)
-        return _helpers.base_list(url, Gate)
 
     @property
     def comments(self):
@@ -125,6 +99,37 @@ class Experiment(object):
     def created(self):
         return _helpers.timestamp_to_datetime(self._properties.get('created'))
 
+
+@attr.s(repr=False)
+class Experiment(ExperimentData):
+    """A class representing a CellEngine experiment.
+
+    Attributes
+        _properties (:obj:`dict`): Experiment properties; reqired.
+    """
+
+    def __repr__(self):
+        return "Experiment(_id=\'{0}\', name=\'{1}\')".format(self._id, self.name)
+
+    def get_fcsfile(self, _id=None, name=None):
+        return Gates.get_fcsfile(self._id, _id=_id, name=name)
+
+    @property
+    def populations(self):
+        """List all populations in the experiment"""
+        url = "experiments/{0}/populations".format(self._id)
+        return _helpers.base_list(url, Population)
+
+    @property
+    def compensations(self):
+        url = "experiments/{0}/compensations".format(self._id)
+        return _helpers.base_list(url, Compensation)
+
+    @property
+    def gates(self):
+        url = "experiments/{0}/gates".format(self._id)
+        return _helpers.base_list(url, Gate)
+
     # Gate Methods:
 
     @doc_inherit(Gates.delete_gates)
@@ -154,3 +159,18 @@ class Experiment(object):
     @doc_inherit(Gates.create_quadrant_gate)
     def create_quadrant_gate(self, *args, **kwargs):
         return getattr(Gates, 'create_quadrant_gate')(self._id, *args, **kwargs)
+
+    def create_complex_population(self, name, base_gate, and_gates=None, or_gates=None,
+                                  not_gates=None, xor_gates=None):
+        """Create a complex population. Pass Gate objects to the logical args."""
+        return Complex_Population_Request().create_complex_population(self._id,
+                                                                      name,
+                                                                      base_gate,
+                                                                      and_gates,
+                                                                      or_gates,
+                                                                      not_gates,
+                                                                      xor_gates)
+
+
+
+
