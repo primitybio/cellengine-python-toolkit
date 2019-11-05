@@ -1,6 +1,7 @@
 import os
 import responses
-from test_population import test_all_population_properties
+from test_population import test_all_population_properties, population
+from cellengine.complex_population_creator import And
 
 base_url = os.environ.get("CELLENGINE_DEVELOPMENT", "https://cellengine.com/api/v1/")
 
@@ -35,16 +36,32 @@ base_url = os.environ.get("CELLENGINE_DEVELOPMENT", "https://cellengine.com/api/
 # test_all_population_properties(complex_pop)
 
 
-@responses.activate
-def test_create_complex_population(experiment, gates, populations):
+# @responses.activate
+def test_create_complex_population_basic(experiment, gates):
     complex_pop = experiment.create_complex_population(
-        {
+        base_gate=gates[0]["_id"],
+        name="complex",
+        gates={
             "$and": [
-                gates[0]["_id"],
                 gates[1]["_id"],
-                {"$or": [gates[2]["_id"], gates[3]["_id"]]},
+                gates[2]["_id"],
+                {"$or": [gates[3]["_id"], gates[4]["_id"]]},
             ]
-        }
+        },
     )
 
     test_all_population_properties(complex_pop)
+
+
+# def test_create_complex_population_with_and_builder(experiment, gates):
+#     complex_pop = experiment.create_complex_population(
+#         gates[0]["_id"], "complex", And(gates[1]["_id"])
+#     )
+#     test_all_population_properties(complex_pop)
+
+
+# def test_create_complex_population_with_object_builders(experiment, gates):
+#     complex_pop = experiment.create_complex_population(
+#         gates[0]["_id"], "complex", And(gates[1]["_id"], Or(gates[2]["_id"]))
+#     )
+#     test_all_population_properties(complex_pop)

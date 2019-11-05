@@ -8,7 +8,9 @@ from .fcsfile import FcsFile
 from .compensation import Compensation
 from .gate import Gate
 from . import Gates
-from .complex_population_creator import ComplexPopulationRequest
+
+# from .complex_population_creator import ComplexPopulationRequest
+from .complex_population_creator import create_complex_population
 
 
 @attr.s(repr=False)
@@ -158,16 +160,20 @@ class Experiment(object):
     def create_quadrant_gate(self, *args, **kwargs):
         return getattr(Gates, "create_quadrant_gate")(self._id, *args, **kwargs)
 
-    def create_complex_population(
-        self,
-        name,
-        base_gate,
-        and_gates=None,
-        or_gates=None,
-        not_gates=None,
-        xor_gates=None,
-    ):
-        """Create a complex population. Pass Gate objects to the logical args."""
-        return Complex_Population_Request().create_complex_population(
-            self._id, name, base_gate, and_gates, or_gates, not_gates, xor_gates
-        )
+    def create_complex_population(self, base_gate, name, gates):
+        return create_complex_population(self._id, base_gate, name, gates)
+
+
+#     def create_complex_population(
+#         self,
+#         name,
+#         base_gate,
+#         and_gates=None,
+#         or_gates=None,
+#         not_gates=None,
+#         xor_gates=None,
+#     ):
+#         """Create a complex population. Pass Gate objects to the logical args."""
+#         return Complex_Population_Request().create_complex_population(
+#             self._id, name, base_gate, and_gates, or_gates, not_gates, xor_gates
+#         )
