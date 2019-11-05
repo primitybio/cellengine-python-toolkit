@@ -1,22 +1,32 @@
 import attr
 from custom_inherit import doc_inherit
-cellengine = __import__(__name__.split('.')[0])
+
+cellengine = __import__(__name__.split(".")[0])
 from . import _helpers
 from .population import Population
 from .fcsfile import FcsFile
 from .compensation import Compensation
 from .gate import Gate
 from . import Gates
-from .complex_population_creator import Complex_Population_Request
+from .complex_population_creator import ComplexPopulationRequest
 
 
 @attr.s(repr=False)
-class ExperimentData(object):
+class Experiment(object):
+    """A class representing a CellEngine experiment.
+
+    Attributes
+        _properties (:obj:`dict`): Experiment properties; reqired.
+    """
+
+    def __repr__(self):
+        return "Experiment(_id='{0}', name='{1}')".format(self._id, self.name)
+
     _properties = attr.ib()
 
-    _id = _helpers.GetSet('_id', read_only=True)
+    _id = _helpers.GetSet("_id", read_only=True)
 
-    name = _helpers.GetSet('name')
+    name = _helpers.GetSet("name")
 
     @property
     def files(self):
@@ -26,9 +36,9 @@ class ExperimentData(object):
 
     @property
     def comments(self):
-        comments = self._properties['comments']
+        comments = self._properties["comments"]
         if type(comments) is not _helpers.CommentList:
-            self._properties['comments'] = _helpers.CommentList(comments)
+            self._properties["comments"] = _helpers.CommentList(comments)
         return comments
 
     @comments.setter
@@ -40,22 +50,22 @@ class ExperimentData(object):
          dict = {"insert": "some text",
         "attributes": {"bold": False, "italic": False, "underline": False}}.
         """
-        if comments.get('insert').endswith('\n') is False:
-            comments.update(insert=comments.get('insert')+'\n')
-        self._properties['comments'] = comments
+        if comments.get("insert").endswith("\n") is False:
+            comments.update(insert=comments.get("insert") + "\n")
+        self._properties["comments"] = comments
 
     @property
     def updated(self):
-        return _helpers.timestamp_to_datetime(self._properties.get('updated'))
+        return _helpers.timestamp_to_datetime(self._properties.get("updated"))
 
     @property
     def deep_updated(self):
-        return _helpers.timestamp_to_datetime(self._properties.get('deepUpdated'))
+        return _helpers.timestamp_to_datetime(self._properties.get("deepUpdated"))
 
     @property
     def deleted(self):
-        if self._properties.get('deleted') is not None:
-            return _helpers.timestamp_to_datetime(self._properties.get('deleted'))
+        if self._properties.get("deleted") is not None:
+            return _helpers.timestamp_to_datetime(self._properties.get("deleted"))
 
     @property
     def delete(self, confirm=True):
@@ -65,51 +75,39 @@ class ExperimentData(object):
         7 days. Until then, deleted experiments can be recovered.
         """
         if confirm:
-            self._properties['deleted'] = _helpers.today_timestamp()
+            self._properties["deleted"] = _helpers.today_timestamp()
         else:
             pass
 
-    public = _helpers.GetSet('public')
+    public = _helpers.GetSet("public")
 
-    uploader = _helpers.GetSet('uploader')
+    uploader = _helpers.GetSet("uploader")
 
-    primary_researcher = _helpers.GetSet('primaryResearcher')
+    primary_researcher = _helpers.GetSet("primaryResearcher")
 
-    active_compensation = _helpers.GetSet('activeCompensation')
+    active_compensation = _helpers.GetSet("activeCompensation")
 
-    locked = _helpers.GetSet('locked')
+    locked = _helpers.GetSet("locked")
 
-    clone_source_experiment = _helpers.GetSet('cloneSourceExperiment')
+    clone_source_experiment = _helpers.GetSet("cloneSourceExperiment")
 
-    revision_source_experiment = _helpers.GetSet('revisionSourceExperiment')
+    revision_source_experiment = _helpers.GetSet("revisionSourceExperiment")
 
-    revisions = _helpers.GetSet('revisions')
+    revisions = _helpers.GetSet("revisions")
 
-    per_file_compensations_enabled = _helpers.GetSet('perFileCompensationsEnabled')
+    per_file_compensations_enabled = _helpers.GetSet("perFileCompensationsEnabled")
 
-    tags = _helpers.GetSet('tags')
+    tags = _helpers.GetSet("tags")
 
-    annotation_name_order = _helpers.GetSet('annotationNameOrder')
+    annotation_name_order = _helpers.GetSet("annotationNameOrder")
 
-    annotation_table_sort_columns = _helpers.GetSet('annotationTableSortColumns')
+    annotation_table_sort_columns = _helpers.GetSet("annotationTableSortColumns")
 
-    permissions = _helpers.GetSet('permissions')
+    permissions = _helpers.GetSet("permissions")
 
     @property
     def created(self):
-        return _helpers.timestamp_to_datetime(self._properties.get('created'))
-
-
-@attr.s(repr=False)
-class Experiment(ExperimentData):
-    """A class representing a CellEngine experiment.
-
-    Attributes
-        _properties (:obj:`dict`): Experiment properties; reqired.
-    """
-
-    def __repr__(self):
-        return "Experiment(_id=\'{0}\', name=\'{1}\')".format(self._id, self.name)
+        return _helpers.timestamp_to_datetime(self._properties.get("created"))
 
     def get_fcsfile(self, _id=None, name=None):
         return Gates.get_fcsfile(self._id, _id=_id, name=name)
@@ -134,43 +132,42 @@ class Experiment(ExperimentData):
 
     @doc_inherit(Gates.delete_gates)
     def delete_gates(self, *args, **kwargs):
-        return getattr(Gates, 'delete_gates')(self._id, *args, **kwargs)
+        return getattr(Gates, "delete_gates")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_rectangle_gate)
     def create_rectangle_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_rectangle_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_rectangle_gate")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_polygon_gate)
     def create_polygon_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_polygon_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_polygon_gate")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_ellipse_gate)
     def create_ellipse_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_ellipse_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_ellipse_gate")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_range_gate)
     def create_range_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_range_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_range_gate")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_split_gate)
     def create_split_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_split_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_split_gate")(self._id, *args, **kwargs)
 
     @doc_inherit(Gates.create_quadrant_gate)
     def create_quadrant_gate(self, *args, **kwargs):
-        return getattr(Gates, 'create_quadrant_gate')(self._id, *args, **kwargs)
+        return getattr(Gates, "create_quadrant_gate")(self._id, *args, **kwargs)
 
-    def create_complex_population(self, name, base_gate, and_gates=None, or_gates=None,
-                                  not_gates=None, xor_gates=None):
+    def create_complex_population(
+        self,
+        name,
+        base_gate,
+        and_gates=None,
+        or_gates=None,
+        not_gates=None,
+        xor_gates=None,
+    ):
         """Create a complex population. Pass Gate objects to the logical args."""
-        return Complex_Population_Request().create_complex_population(self._id,
-                                                                      name,
-                                                                      base_gate,
-                                                                      and_gates,
-                                                                      or_gates,
-                                                                      not_gates,
-                                                                      xor_gates)
-
-
-
-
+        return Complex_Population_Request().create_complex_population(
+            self._id, name, base_gate, and_gates, or_gates, not_gates, xor_gates
+        )

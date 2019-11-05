@@ -6,19 +6,23 @@ from . import _helpers
 
 
 @attr.s(repr=False)
-class CompensationData(object):
+class Compensation(object):
     """A class representing a CellEngine compensation matrix. Can be applied to
     FCS files to compensate them.
     """
+
+    def __repr__(self):
+        return "Compensation(_id='{0}', name='{1}')".format(self._id, self.name)
+
     _properties = attr.ib(default={}, repr=False)
 
-    _id = _helpers.GetSet('_id', read_only=True)
+    _id = _helpers.GetSet("_id", read_only=True)
 
-    name = _helpers.GetSet('name')
+    name = _helpers.GetSet("name")
 
-    experiment_id = _helpers.GetSet('experimentId')
+    experiment_id = _helpers.GetSet("experimentId")
 
-    channels = _helpers.GetSet('channels')
+    channels = _helpers.GetSet("channels")
 
     @property
     def N(self):
@@ -26,27 +30,20 @@ class CompensationData(object):
 
     @property
     def dataframe(self):
-        if hasattr(self, '_dataframe'):
+        if hasattr(self, "_dataframe"):
             return self._dataframe
         else:
             self._dataframe = pandas.DataFrame(
-                data=numpy.array(self._properties.get('spillMatrix')).reshape(self.N, self.N),
-                                 columns=self.channels,
-                                 index=self.channels)
+                data=numpy.array(self._properties.get("spillMatrix")).reshape(
+                    self.N, self.N
+                ),
+                columns=self.channels,
+                index=self.channels,
+            )
             return self._dataframe
 
     def _repr_html_(self):
         return self.dataframe._repr_html_()
-
-
-@attr.s(repr=False)
-class Compensation(CompensationData):
-    """A class representing a CellEngine compensation matrix. Can be applied to
-    FCS files to compensate them.
-    """
-
-    def __repr__(self):
-        return "Compensation(_id=\'{0}\', name=\'{1}\')".format(self._id, self.name)
 
     def apply(self, file, inplace=True):
         """

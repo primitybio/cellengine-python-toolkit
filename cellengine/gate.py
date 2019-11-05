@@ -1,71 +1,19 @@
 import attr
 import munch
 from . import _helpers
-from .Gates import (create_rectangle_gate, create_ellipse_gate,
-                    create_polygon_gate, create_range_gate, create_split_gate,
-                    create_quadrant_gate)
+from .Gates import (
+    create_rectangle_gate,
+    create_ellipse_gate,
+    create_polygon_gate,
+    create_range_gate,
+    create_split_gate,
+    create_quadrant_gate,
+)
 from .Gates.gate_util import create_gates
 
 
 @attr.s(repr=False)
-class GateData(object):
-    _properties = attr.ib(default={}, repr=False)
-
-    _id = _helpers.GetSet('_id', read_only=True)
-
-    name = _helpers.GetSet('name')
-
-    # TODO: bad usage of a Python builtin; can we change this? (is functional)
-    type = _helpers.GetSet('type')
-
-    experiment_id = _helpers.GetSet('experimentId', read_only=True)
-
-    gid = _helpers.GetSet('gid')
-
-    x_channel = _helpers.GetSet('xChannel')
-
-    y_channel = _helpers.GetSet('yChannel')
-
-    tailored_per_file = _helpers.GetSet('tailoredPerFile')
-
-    fcs_file_id = _helpers.GetSet('fcsFileId')
-
-    parent_population_id = _helpers.GetSet('parentPopulationId')
-
-    names = _helpers.GetSet('names')
-
-    @property
-    def model(self):
-        """Return an attribute-style dict of the model.
-
-        NOTE: This approach does allow users to change the model properties to
-        invalid values (i.e. 'rectangle' to a str from a dict). We could
-        prevent this by making Gate.model return a __slot__ class "Model", where each
-        attr of Model was built dynamically. I wrote it this way at first, but
-        couldn't figure out a way to write both get and set attribute-style accessors
-        for the class. Munch does this really nicely.
-
-        As it is, this relies on the API to validate the model. If necessary, I
-        can write validators in here as well.
-        """
-        model = self._properties['model']
-        if type(model) is not Gate._Munch:
-            self._properties['model'] = munch.munchify(model, factory=self._Munch)
-        return model
-
-    @model.setter
-    def model(self, val):
-        model = self._properties['model']
-        model.update(val)
-
-    class _Munch(munch.Munch):
-        """Extend the Munch class for a dict-like __repr__"""
-        def __repr__(self):
-            return '{0}'.format(dict.__repr__(self))
-
-
-@attr.s(repr=False)
-class Gate(GateData):
+class Gate(object):
     """A class representing a CellEngine gate.
 
     Gates are geometric shapes that define boundaries within which events
@@ -96,7 +44,64 @@ class Gate(GateData):
     """
 
     def __repr__(self):
-        return "Gate(_id=\'{0}\', name=\'{1}\', type={2})".format(self._id, self.name, self.type)
+        return "Gate(_id='{0}', name='{1}', type={2})".format(
+            self._id, self.name, self.type
+        )
+
+    _properties = attr.ib(default={}, repr=False)
+
+    _id = _helpers.GetSet("_id", read_only=True)
+
+    name = _helpers.GetSet("name")
+
+    # TODO: bad usage of a Python builtin; can we change this? (is functional)
+    type = _helpers.GetSet("type")
+
+    experiment_id = _helpers.GetSet("experimentId", read_only=True)
+
+    gid = _helpers.GetSet("gid")
+
+    x_channel = _helpers.GetSet("xChannel")
+
+    y_channel = _helpers.GetSet("yChannel")
+
+    tailored_per_file = _helpers.GetSet("tailoredPerFile")
+
+    fcs_file_id = _helpers.GetSet("fcsFileId")
+
+    parent_population_id = _helpers.GetSet("parentPopulationId")
+
+    names = _helpers.GetSet("names")
+
+    @property
+    def model(self):
+        """Return an attribute-style dict of the model.
+
+        NOTE: This approach does allow users to change the model properties to
+        invalid values (i.e. 'rectangle' to a str from a dict). We could
+        prevent this by making Gate.model return a __slot__ class "Model", where each
+        attr of Model was built dynamically. I wrote it this way at first, but
+        couldn't figure out a way to write both get and set attribute-style accessors
+        for the class. Munch does this really nicely.
+
+        As it is, this relies on the API to validate the model. If necessary, I
+        can write validators in here as well.
+        """
+        model = self._properties["model"]
+        if type(model) is not Gate._Munch:
+            self._properties["model"] = munch.munchify(model, factory=self._Munch)
+        return model
+
+    @model.setter
+    def model(self, val):
+        model = self._properties["model"]
+        model.update(val)
+
+    class _Munch(munch.Munch):
+        """Extend the Munch class for a dict-like __repr__"""
+
+        def __repr__(self):
+            return "{0}".format(dict.__repr__(self))
 
     # gate creation methods
 
