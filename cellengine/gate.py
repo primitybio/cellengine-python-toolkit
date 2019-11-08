@@ -54,7 +54,6 @@ class Gate(object):
 
     name = _helpers.GetSet("name")
 
-    # TODO: bad usage of a Python builtin; can we change this? (is functional)
     type = _helpers.GetSet("type")
 
     experiment_id = _helpers.GetSet("experimentId", read_only=True)

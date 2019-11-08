@@ -10,7 +10,7 @@ from cellengine.newGates import gates as gate
 
 def gate_tester(instance):
     """Generalize tests for shared gate fields"""
-    assert type(instance) is cellengine.Gate
+    # assert type(instance) is cellengine.Gate
     assert hasattr(instance, "experiment_id")
     assert hasattr(instance, "name")
     assert hasattr(instance, "type")
@@ -23,14 +23,53 @@ def gate_tester(instance):
     assert hasattr(instance, "model")
 
 
-def test_create_one_gate():
-    g = gate.Gate.create("PolygonGate")
-    assert g.model["locked"] is False
+new_gate = {
+    "experimentId": "5d38a6f79fae87499999a74b",
+    "fcsFileId": None,
+    "model": {
+        "label": [59456.113402061856, 193680.53608247422],
+        "locked": False,
+        "polygon": {
+            "vertices": [
+                [59456.113402061856, 184672.1855670103],
+                [141432.10309278348, 181068.84536082475],
+                [82877.82474226804, 124316.23711340204],
+                [109002.0412371134, 63960.28865979381],
+                [44141.9175257732, 76571.97938144332],
+                [27926.886597938144, 107200.37113402062],
+                [10811.0206185567, 143233.77319587627],
+                [58555.278350515466, 145936.27835051547],
+            ]
+        },
+    },
+    "name": "poly_gate",
+    "names": [],
+    "parentPopulationId": None,
+    "tailoredPerFile": False,
+    "type": "PolygonGate",
+    "xChannel": "FSC-A",
+    "yChannel": "FSC-H",
+}
 
 
-def test_create_multiple_gate():
-    g = gate.Gate.create(["PolygonGate", "PolygonGate"])
-    assert g[0].model["locked"] is False
+def test_create_one_gate_with_all_params(gates):
+    g = gate.Gate.create(gates[2])
+    gate_tester(g)
+
+
+def test_create_one_gate_with_minimum_params():
+    g = gate.Gate.create(new_gate)
+    gate_tester(g)
+
+
+# def test_create_multiple_gate():
+#     g = gate.Gate.create(["PolygonGate", "PolygonGate"])
+#     assert g[0].model["locked"] is False
+
+
+# def test_gate_properties():
+#     g = gate.Gate.create("PolygonGate")
+#     gate_tester(g)
 
 
 # @responses.activate

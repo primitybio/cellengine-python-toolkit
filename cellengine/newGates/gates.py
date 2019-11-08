@@ -1,21 +1,23 @@
+from cellengine import _helpers
 import importlib
 from abc import ABC, abstractmethod
+import munch
+from ..Gates import gate_util
 
 
-class Gate(ABC):
+class BaseGate(ABC):
     """Basic abstract class for gates"""
 
-    def __init__(self, gate_class=None, name=None, _id="none"):
-        self.gate_class = gate_class
-        self._id = _id
-        self.name = name
+    def __init__(self, type=None, _properties=None):
+        self.type = type
+        self._properties = _properties
 
     def __repr__(self):
-        return "{}(name={}, _id={})".format(self.gate_class, self.name, self._id)
+        return "{}(_id={}, name={})".format(self.type, self._id, self.name)
 
     @classmethod
     def create(cls, gates):
-        """Instantiate a gate """
+        """Build a gate object from a dict of properties."""
         if type(gates) is list:
             return cls.create_multiple(gates)
         else:
@@ -23,19 +25,101 @@ class Gate(ABC):
 
     @classmethod
     def create_gate(cls, gate):
+        """Get the gate type and return instance of the correct subclass."""
         module = importlib.import_module(__name__)
-        print(module)
-        gate_class = getattr(module, gate)
-        return gate_class(gate_class=gate_class.__name__)
+        _type = getattr(module, gate["type"])
+        res = cls.post_gate(gate)
+        return _type(type=_type.__name__, _properties=res)
 
     @classmethod
     def create_multiple(cls, gates):
         return [cls.create_gate(gate) for gate in gates]
 
+    @classmethod
+    def post_gate(cls, gate):
+        res = _helpers.session.post(
+            f"experiments/{gate['experimentId']}/gates", json=gate
+        )
+        print(res.json())
+        return res.json()
+
     @property
     @abstractmethod
     def model(self):
         pass
+
+
+class Gate(BaseGate):
+    """Basic concrete class for gates"""
+
+    _id = _helpers.GetSet("_id", read_only=True)
+
+    name = _helpers.GetSet("name")
+
+    experiment_id = _helpers.GetSet("experimentId", read_only=True)
+
+    gid = _helpers.GetSet("gid")
+
+    x_channel = _helpers.GetSet("xChannel")
+
+    y_channel = _helpers.GetSet("yChannel")
+
+    tailored_per_file = _helpers.GetSet("tailoredPerFile")
+
+    fcs_file_id = _helpers.GetSet("fcsFileId")
+
+    parent_population_id = _helpers.GetSet("parentPopulationId")
+
+    names = _helpers.GetSet("names")
+
+    locked = _helpers.GetSet("locked")
+
+    label = _helpers.GetSet("label")
+
+    @property
+    def model(self):
+        """Return an attribute-style dict of the model.
+
+        NOTE: This approach does allow users to change the model properties to
+        invalid values (i.e. 'rectangle' to a str from a dict). We could
+        prevent this by making Gate.model return a __slot__ class "Model", where each
+        attr of Model was built dynamically. I wrote it this way at first, but
+        couldn't figure out a way to write both get and set attribute-style accessors
+        for the class. Munch does this really nicely.
+
+        As it is, this relies on the API to validate the model. If necessary, I
+        can write validators in here as well.
+        """
+        model = self._properties["model"]
+        if type(model) is not Gate._Munch:
+            self._properties["model"] = munch.munchify(model, factory=self._Munch)
+        return model
+
+    @model.setter
+    def model(self, val):
+        model = self._properties["model"]
+        model.update(val)
+
+    class _Munch(munch.Munch):
+        """Extend the Munch class for a dict-like __repr__"""
+
+        def __repr__(self):
+            return "{0}".format(dict.__repr__(self))
+
+
+class RectangleGate(Gate):
+    """Basic concrete class for polygon gates"""
+
+    pass
+
+    # @property
+    # def model(self):
+    #     model = {
+    #         "locked": self.locked,
+    #         "label": self.label,
+    #         "rectangle": {"x1": self.x1, "x2": self.x2, "y1": self.y1, "y2": self.y2},
+    #     }
+    #     return model
 
 
 class PolygonGate(Gate):
