@@ -20,8 +20,9 @@ from .population import Population
 from .compensation import Compensation
 from .fcsfile import FcsFile
 
-# from .gate import Gate
-from .newGates.gates import Gate
+from .gate import *
 
-# TODO: make this import explicit
-from .newGates.gates import *
+# from .newGates.gates import Gate
+
+# # TODO: make this import explicit
+# from .newGates.gates import *

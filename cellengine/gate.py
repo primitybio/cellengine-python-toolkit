@@ -1,60 +1,59 @@
 import attr
+import numpy
+from cellengine import _helpers
+
+# from cellengine import Population
+import importlib
+from abc import ABC, abstractmethod
 import munch
-from . import _helpers
-from .Gates import (
-    create_rectangle_gate,
-    create_ellipse_gate,
-    create_polygon_gate,
-    create_range_gate,
-    create_split_gate,
-    create_quadrant_gate,
-)
-from .Gates.gate_util import create_gates
+from .Gates import *
+
+from .Gates.gate_util import common_gate_create
 
 
-@attr.s(repr=False)
-class Gate(object):
-    """A class representing a CellEngine gate.
+class Gate(ABC):
+    """Basic abstract class for gates"""
 
-    Gates are geometric shapes that define boundaries within which events
-    (cells) must be contained to be considered part of a population.
-
-    Gates may be any one of RectangleGate, PolygonGate, EllipseGate, RangeGate,
-    QuadrantGate or SplitGate. See ``help(cellengine.Gate.<Gate Type>)`` for
-    specific args.
-
-    When tailoring a gate to a file, a new gate is created with the same GID as
-    the original gate, but with an fcs_file_id property set to the file to which
-    the gate is tailored. To create a tailored gate, first create a global
-    tailored gate by passing ``tailored_per_file=True`` and
-    ``fcs_file_id=None`` to a gate creation method. Subsequent tailored gates
-    may be created with ``tailored_per_file=True`` and ``gid=<global gate
-    gid>``.
-
-    The update and delete API endpoints accept requests by GID to make
-    for efficient updates to families of tailored gates.
-
-    Compound gates (quadrant and split) are made up of "sectors." Quadrant
-    gates have four sectors (upper-right, upper-left, lower-left, lower-right)
-    and split gates have two sectors (left and right). In addition to the
-    top-level GID (like simple gates), these gates have model.gids and names
-    lists that specify the GID and name for each sector, in the order shown
-    above. Populations using compound gates must reference these sector GIDs;
-    referencing the top-level GID of a compound gate is meaningless.
-    """
+    def __init__(self, _properties=None, _population=None):
+        self._properties = _properties
+        self._population = _population
 
     def __repr__(self):
-        return "Gate(_id='{0}', name='{1}', type={2})".format(
-            self._id, self.name, self.type
-        )
+        return "{}(_id={}, name={})".format(self.type, self._id, self.name)
 
-    _properties = attr.ib(default={}, repr=False)
+    @classmethod
+    def create(cls, gates):
+        """Build a gate object from a dict of properties."""
+        if type(gates) is list:
+            return cls.create_multiple(gates)
+        else:
+            return cls.create_gate(gates)
+
+    @classmethod
+    def create_gate(cls, gate):
+        """Get the gate type and return instance of the correct subclass."""
+        module = importlib.import_module(__name__)
+        gate_type = getattr(module, gate["type"])
+        res = cls.post_gate(gate)
+        validate_response(res)
+        return gate_type(_properties=res)
+
+    @classmethod
+    def create_multiple(cls, gates):
+        return [cls.create_gate(gate) for gate in gates]
+
+    @classmethod
+    def post_gate(cls, gate):
+        res = _helpers.session.post(
+            "experiments/{}/gates".format(gate["experimentId"]), json=gate
+        )
+        return res.json()
 
     _id = _helpers.GetSet("_id", read_only=True)
 
     name = _helpers.GetSet("name")
 
-    type = _helpers.GetSet("type")
+    type = _helpers.GetSet("type", read_only=True)
 
     experiment_id = _helpers.GetSet("experimentId", read_only=True)
 
@@ -71,6 +70,12 @@ class Gate(object):
     parent_population_id = _helpers.GetSet("parentPopulationId")
 
     names = _helpers.GetSet("names")
+
+    # @property
+    # def population(self):
+    #     """If the gate is associated with a population, it can be accessed here."""
+    #     if self._population is not None:
+    #         return Population(self._population)
 
     @property
     def model(self):
@@ -102,18 +107,146 @@ class Gate(object):
         def __repr__(self):
             return "{0}".format(dict.__repr__(self))
 
-    # gate creation methods
+    @classmethod
+    def gid_checker(cls, gid):
+        if gid is None:
+            gid = _helpers.generate_id()
+            return gid
 
-    create_gates = staticmethod(create_gates)
 
-    create_rectangle_gate = staticmethod(create_rectangle_gate)
+class RectangleGate(Gate):
+    """Basic concrete class for polygon gates"""
 
-    create_polygon_gate = staticmethod(create_polygon_gate)
+    pass
 
-    create_ellipse_gate = staticmethod(create_ellipse_gate)
 
-    create_range_gate = staticmethod(create_range_gate)
+class PolygonGate(Gate):
+    """Basic concrete class for polygon gates"""
 
-    create_split_gate = staticmethod(create_split_gate)
+    @classmethod
+    def create(
+        cls,
+        experiment_id,
+        x_channel,
+        y_channel,
+        name,
+        x_vertices,
+        y_vertices,
+        label=[],
+        gid=None,
+        locked=False,
+        parent_population_id=None,
+        parent_population=None,
+        tailored_per_file=False,
+        fcs_file_id=None,
+        fcs_file=None,
+        create_population=True,
+    ):
 
-    create_quadrant_gate = staticmethod(create_quadrant_gate)
+        label = cls.label_maker(label, x_vertices, y_vertices)
+
+        gid = cls.gid_checker(gid)
+
+        _model = cls._model(x_vertices, y_vertices, locked, label)
+
+        body = cls.body(
+            experiment_id, name, gid, x_channel, y_channel, parent_population_id, _model
+        )
+
+        body = parse_fcs_file_args(
+            experiment_id, body, tailored_per_file, fcs_file_id, fcs_file
+        )
+
+        body = _helpers.convert_dict(body, "snake_to_camel")
+
+        res = _helpers.session.post(
+            url="experiments/{0}/gates".format(experiment_id),
+            json=body,
+            params={"createPopulation": create_population},
+        )
+
+        # TODO: get population
+        # gate, pop = _helpers.parse_response(res)
+        gate = _helpers.parse_response(res)
+        return cls(_properties=gate)
+
+    @classmethod
+    def label_maker(cls, label, x_vertices, y_vertices):
+        if label == []:
+            return [numpy.mean(x_vertices), numpy.mean(y_vertices)]
+
+    @classmethod
+    def _model(cls, x_vertices, y_vertices, locked, label):
+        model = {
+            "locked": locked,
+            "label": label,
+            "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
+        }
+        return model
+
+    @classmethod
+    def body(
+        cls,
+        experiment_id,
+        name,
+        gid,
+        x_channel,
+        y_channel,
+        parent_population_id,
+        _model,
+    ):
+
+        body = {
+            "experimentId": experiment_id,
+            "name": name,
+            "type": "PolygonGate",
+            "gid": gid,
+            "xChannel": x_channel,
+            "yChannel": y_channel,
+            "parentPopulationId": parent_population_id,
+            "model": _model,
+        }
+        return body
+
+
+def parse_fcs_file_args(experiment_id, body, tailored_per_file, fcs_file_id, fcs_file):
+    """Find the fcs file ID if 'tailored_per_file' and either 'fcs_file' or
+    'fcs_file_id' are specified."""
+    if fcs_file is not None and fcs_file_id is not None:
+        raise ValueError("Please specify only 'fcs_file' or 'fcs_file_id'.")
+    if fcs_file is not None and tailored_per_file is True:  # lookup by name
+        _file = get_fcsfile(experiment_id, name=fcs_file)
+        fcs_file_id = _file._id
+    body["tailoredPerFile"] = tailored_per_file
+    body["fcsFileId"] = fcs_file_id
+    return body
+
+
+def get_fcsfile(experiment_id, _id=None, name=None):
+    if _id:
+        content = _helpers.base_get(
+            "experiments/{0}/fcsfiles/{1}".format(experiment_id, _id)
+        )
+        content = FcsFile(properties=content)
+    else:
+        content = _helpers.load_fcsfile_by_name(experiment_id, name)
+    return content
+
+
+def validate_response(res):
+    try:
+        keys = [
+            "experimentId",
+            "name",
+            "type",
+            "gid",
+            "xChannel",
+            "yChannel",
+            "tailoredPerFile",
+            "fcsFileId",
+            "parentPopulationId",
+            "model",
+        ]
+        assert all([key in res.keys() for key in keys])
+    except:
+        raise RuntimeError("Invalid request: {}".format(res))

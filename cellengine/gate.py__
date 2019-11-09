@@ -1,8 +1,11 @@
+import numpy
 from cellengine import _helpers
 import importlib
 from abc import ABC, abstractmethod
 import munch
-from ..Gates import create_polygon_gate
+from .Gates import *
+
+from .Gates.gate_util import common_gate_create
 
 
 class BaseGate(ABC):
@@ -40,7 +43,6 @@ class BaseGate(ABC):
         res = _helpers.session.post(
             f"experiments/{gate['experimentId']}/gates", json=gate
         )
-        print(res.json())
         return res.json()
 
     @property
@@ -71,10 +73,6 @@ class Gate(BaseGate):
     parent_population_id = _helpers.GetSet("parentPopulationId")
 
     names = _helpers.GetSet("names")
-
-    locked = _helpers.GetSet("locked")
-
-    label = _helpers.GetSet("label")
 
     @property
     def model(self):
@@ -144,29 +142,83 @@ class PolygonGate(Gate):
         fcs_file=None,
         create_population=True,
     ):
-        return create_polygon_gate(
-            experiment_id,
-            x_channel,
-            y_channel,
-            name,
-            x_vertices,
-            y_vertices,
-            label,
-            gid,
-            locked,
-            parent_population_id,
-            parent_population,
-            tailored_per_file,
-            fcs_file_id,
-            fcs_file,
-            create_population,
+        if label == []:
+            label = [numpy.mean(x_vertices), numpy.mean(y_vertices)]
+        if gid is None:
+            gid = _helpers.generate_id()
+
+        model = {
+            "locked": locked,
+            "label": label,
+            "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
+        }
+
+        body = {
+            "experimentId": experiment_id,
+            "name": name,
+            "type": "PolygonGate",
+            "gid": gid,
+            "xChannel": x_channel,
+            "yChannel": y_channel,
+            "parentPopulationId": parent_population_id,
+            "model": model,
+        }
+
+        body = parse_fcs_file_args(
+            experiment_id, body, tailored_per_file, fcs_file_id, fcs_file
         )
 
+        body = _helpers.convert_dict(body, "snake_to_camel")
+        # res = _helpers.base_create(
+        #     cls,
+        #     url="experiments/{0}/gates".format(experiment_id),
+        #     expected_status=201,
+        #     json=body,
+        #     params={"createPopulation": create_population},
+        # )
+        res = _helpers.session.post(
+            url="experiments/{0}/gates".format(experiment_id),
+            json=body,
+            params={"createPopulation": create_population},
+        )
+
+        gate = res.json()["gate"]
+        # cls._population = res.json()["population"]
+        return cls(type=gate["type"], _properties=gate)
+
     @property
-    def model(self):
-        model = {
-            "locked": False,
-            "label": "none for now",
-            "polygon": {"vertices": "some vertices here"},
-        }
-        return model
+    def population(self):
+        return self._population
+
+    # @property
+    # def model(self):
+    #     model = {
+    #         "locked": self.locked,
+    #         "label": self.label,
+    #         "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
+    #     }
+    #     return model
+
+
+def parse_fcs_file_args(experiment_id, body, tailored_per_file, fcs_file_id, fcs_file):
+    """Find the fcs file ID if 'tailored_per_file' and either 'fcs_file' or
+    'fcs_file_id' are specified."""
+    if fcs_file is not None and fcs_file_id is not None:
+        raise ValueError("Please specify only 'fcs_file' or 'fcs_file_id'.")
+    if fcs_file is not None and tailored_per_file is True:  # lookup by name
+        _file = get_fcsfile(experiment_id, name=fcs_file)
+        fcs_file_id = _file._id
+    body["tailoredPerFile"] = tailored_per_file
+    body["fcsFileId"] = fcs_file_id
+    return body
+
+
+def get_fcsfile(experiment_id, _id=None, name=None):
+    if _id:
+        content = _helpers.base_get(
+            "experiments/{0}/fcsfiles/{1}".format(experiment_id, _id)
+        )
+        content = FcsFile(properties=content)
+    else:
+        content = _helpers.load_fcsfile_by_name(experiment_id, name)
+    return content

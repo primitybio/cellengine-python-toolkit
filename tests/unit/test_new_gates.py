@@ -5,7 +5,9 @@ import pytest
 import responses
 import cellengine
 from cellengine import _helpers
-from cellengine.newGates import gates as gate
+from cellengine import gate
+
+base_url = os.environ.get("CELLENGINE_DEVELOPMENT", "https://cellengine.com/api/v1/")
 
 
 def gate_tester(instance):
@@ -23,10 +25,15 @@ def gate_tester(instance):
     assert hasattr(instance, "model")
 
 
-new_gate = {
-    "experimentId": "5d38a6f79fae87499999a74b",
-    "fcsFileId": None,
-    "model": {
+def test_init_gate(polygon_gate):
+    """Test instantiating a gate object a correct dict of properties"""
+    g = cellengine.PolygonGate(_properties=polygon_gate)
+    gate_tester(g)
+    assert g.experiment_id == "5d38a6f79fae87499999a74b"
+    assert g.x_channel == "FSC-A"
+    assert g.y_channel == "FSC-H"
+    assert g.name == "poly_gate"
+    assert g.model == {
         "label": [59456.113402061856, 193680.53608247422],
         "locked": False,
         "polygon": {
@@ -41,27 +48,29 @@ new_gate = {
                 [58555.278350515466, 145936.27835051547],
             ]
         },
-    },
-    "name": "poly_gate",
-    "gid": None,
-    "names": [],
-    "parentPopulationId": None,
-    "tailoredPerFile": False,
-    "type": "PolygonGate",
-    "xChannel": "FSC-A",
-    "yChannel": "FSC-H",
-}
+    }
 
 
-def test_create_one_gate_with_all_params(gates):
-    _helpers.base_delete(
-        f"experiments/{gates[2]['experimentId']}/gates/{gates[2]['_id']}"
+@responses.activate
+def test_create_one_gate_with_all_params(rectangle_gate):
+    responses.add(
+        responses.POST,
+        base_url + "experiments/5d38a6f79fae87499999a74b/gates",
+        status=201,
+        json=rectangle_gate,
     )
-    g = gate.Gate.create(gates[2])
+    g = gate.Gate.create(rectangle_gate)
     gate_tester(g)
 
 
-def test_create_polygon_gate():
+# @responses.activate
+def test_create_polygon_gate(polygon_gate):
+    # responses.add(
+    #     responses.POST,
+    #     base_url + "experiments/5d38a6f79fae87499999a74b/gates",
+    #     status=201,
+    #     json=polygon_gate,
+    # )
     g = gate.PolygonGate.create(
         experiment_id="5d38a6f79fae87499999a74b",
         x_channel="FSC-A",
@@ -82,9 +91,40 @@ def test_create_polygon_gate():
     }
 
 
-def test_create_one_gate_with_minimum_params():
-    g = gate.Gate.create(new_gate)
-    gate_tester(g)
+bad_gate = {
+    "__v": 0,
+    "experimentId": "5d38a6f79fae87499999a74b",
+    # "name": "my gate",
+    "type": "PolygonGate",
+    "gid": "5dc6e4514855ff5d3d041d03",
+    "xChannel": "FSC-A",
+    "yChannel": "FSC-W",
+    "parentPopulationId": None,
+    "model": {
+        "polygon": {"vertices": [[1, 4], [2, 5], [3, 6]]},
+        "label": [2, 5],
+        "locked": False,
+    },
+    "_id": "5dc6e451447b66af32faba31",
+    "fcsFileId": None,
+    "tailoredPerFile": False,
+    "names": [],
+}
+
+
+@responses.activate
+def test_create_gate_with_bad_params():
+    responses.add(
+        responses.POST,
+        base_url + "experiments/5d38a6f79fae87499999a74b/gates",
+        status=201,
+        json=bad_gate,
+    )
+    with pytest.raises(RuntimeError):
+        g = gate.Gate.create(bad_gate)
+
+
+# def test_fcs_file_and_fcs_file_id_defined(experiment, experiments, gates):
 
 
 # def test_create_multiple_gate():
@@ -121,8 +161,6 @@ def test_create_one_gate_with_minimum_params():
 #     assert rectangle_gate.model.rectangle.x2 == 200000
 #     assert rectangle_gate.model.rectangle.y1 == 75000
 #     assert rectangle_gate.model.rectangle.y2 == 215000
-
-base_url = os.environ.get("CELLENGINE_DEVELOPMENT", "https://cellengine.com/api/v1/")
 
 
 # @responses.activate
