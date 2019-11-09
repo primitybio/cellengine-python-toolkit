@@ -200,7 +200,7 @@ def base_get(url, params=None):
         return res
 
 
-def base_create(classname, url, expected_status, json=None, params=None, **kwargs):
+def base_create(url, expected_status, classname=None, json=None, params=None, **kwargs):
     """Create a new object.
 
     Args:
@@ -220,7 +220,10 @@ def base_create(classname, url, expected_status, json=None, params=None, **kwarg
     res = session.post(url, json=json, params=params)
     if res.status_code == expected_status:
         data = parse_response(res)
-        return make_class(classname, data)
+        if classname:
+            return make_class(classname, data)
+        else:
+            return data
     else:
         raise Exception(res.content.decode())
 

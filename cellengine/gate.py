@@ -11,43 +11,47 @@ from .Gates import *
 from .Gates.gate_util import common_gate_create
 
 
+@attr.s(repr=False)
 class Gate(ABC):
     """Basic abstract class for gates"""
 
-    def __init__(self, _properties=None, _population=None):
-        self._properties = _properties
-        self._population = _population
+    _properties = attr.ib(default=None)
+
+    _population = attr.ib(default=None)
 
     def __repr__(self):
         return "{}(_id={}, name={})".format(self.type, self._id, self.name)
 
     @classmethod
-    def create(cls, gates):
-        """Build a gate object from a dict of properties."""
+    def create(cls, gates, create_population=False):
+        """Build a Gate object from a dict of properties."""
         if type(gates) is list:
             return cls.create_multiple(gates)
         else:
-            return cls.create_gate(gates)
+            return cls.create_gate(gates, create_population)
 
     @classmethod
-    def create_gate(cls, gate):
+    def create_gate(cls, gate, create_population):
         """Get the gate type and return instance of the correct subclass."""
         module = importlib.import_module(__name__)
         gate_type = getattr(module, gate["type"])
-        res = cls.post_gate(gate)
+        res = cls._post_gate(gate, create_population)
         validate_response(res)
-        return gate_type(_properties=res)
+        return gate_type(properties=res)
 
     @classmethod
     def create_multiple(cls, gates):
         return [cls.create_gate(gate) for gate in gates]
 
     @classmethod
-    def post_gate(cls, gate):
-        res = _helpers.session.post(
-            "experiments/{}/gates".format(gate["experimentId"]), json=gate
+    def _post_gate(cls, gate, create_population):
+        res = _helpers.base_create(
+            "experiments/{}/gates".format(gate["experimentId"]),
+            json=gate,
+            expected_status=201,
+            params={"createPopulation": create_population},
         )
-        return res.json()
+        return res
 
     _id = _helpers.GetSet("_id", read_only=True)
 
@@ -70,6 +74,8 @@ class Gate(ABC):
     parent_population_id = _helpers.GetSet("parentPopulationId")
 
     names = _helpers.GetSet("names")
+
+    # TODO: create_population()
 
     # @property
     # def population(self):
@@ -107,12 +113,6 @@ class Gate(ABC):
         def __repr__(self):
             return "{0}".format(dict.__repr__(self))
 
-    @classmethod
-    def gid_checker(cls, gid):
-        if gid is None:
-            gid = _helpers.generate_id()
-            return gid
-
 
 class RectangleGate(Gate):
     """Basic concrete class for polygon gates"""
@@ -143,70 +143,76 @@ class PolygonGate(Gate):
         create_population=True,
     ):
 
-        label = cls.label_maker(label, x_vertices, y_vertices)
-
-        gid = cls.gid_checker(gid)
-
-        _model = cls._model(x_vertices, y_vertices, locked, label)
-
-        body = cls.body(
-            experiment_id, name, gid, x_channel, y_channel, parent_population_id, _model
+        body = format_polygon_gate(
+            experiment_id,
+            x_channel,
+            y_channel,
+            name,
+            x_vertices,
+            y_vertices,
+            label=[],
+            gid=None,
+            locked=False,
+            parent_population_id=None,
+            parent_population=None,
+            tailored_per_file=False,
+            fcs_file_id=None,
+            fcs_file=None,
+            create_population=True,
         )
 
-        body = parse_fcs_file_args(
-            experiment_id, body, tailored_per_file, fcs_file_id, fcs_file
-        )
+        return cls.create_gate(body, create_population=create_population)
 
-        body = _helpers.convert_dict(body, "snake_to_camel")
+        # # TODO: get population
 
-        res = _helpers.session.post(
-            url="experiments/{0}/gates".format(experiment_id),
-            json=body,
-            params={"createPopulation": create_population},
-        )
 
-        # TODO: get population
-        # gate, pop = _helpers.parse_response(res)
-        gate = _helpers.parse_response(res)
-        return cls(_properties=gate)
+def format_polygon_gate(
+    experiment_id,
+    x_channel,
+    y_channel,
+    name,
+    x_vertices,
+    y_vertices,
+    label=[],
+    gid=None,
+    locked=False,
+    parent_population_id=None,
+    parent_population=None,
+    tailored_per_file=False,
+    fcs_file_id=None,
+    fcs_file=None,
+    create_population=True,
+):
+    if label == []:
+        label = [numpy.mean(x_vertices), numpy.mean(y_vertices)]
 
-    @classmethod
-    def label_maker(cls, label, x_vertices, y_vertices):
-        if label == []:
-            return [numpy.mean(x_vertices), numpy.mean(y_vertices)]
+    if gid is None:
+        gid = _helpers.generate_id()
 
-    @classmethod
-    def _model(cls, x_vertices, y_vertices, locked, label):
-        model = {
-            "locked": locked,
-            "label": label,
-            "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
-        }
-        return model
+    model = {
+        "locked": locked,
+        "label": label,
+        "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
+    }
 
-    @classmethod
-    def body(
-        cls,
-        experiment_id,
-        name,
-        gid,
-        x_channel,
-        y_channel,
-        parent_population_id,
-        _model,
-    ):
+    body = {
+        "experimentId": experiment_id,
+        "name": name,
+        "type": "PolygonGate",
+        "gid": gid,
+        "xChannel": x_channel,
+        "yChannel": y_channel,
+        "parentPopulationId": parent_population_id,
+        "model": model,
+    }
 
-        body = {
-            "experimentId": experiment_id,
-            "name": name,
-            "type": "PolygonGate",
-            "gid": gid,
-            "xChannel": x_channel,
-            "yChannel": y_channel,
-            "parentPopulationId": parent_population_id,
-            "model": _model,
-        }
-        return body
+    body = parse_fcs_file_args(
+        experiment_id, body, tailored_per_file, fcs_file_id, fcs_file
+    )
+
+    body = _helpers.convert_dict(body, "snake_to_camel")
+
+    return body
 
 
 def parse_fcs_file_args(experiment_id, body, tailored_per_file, fcs_file_id, fcs_file):

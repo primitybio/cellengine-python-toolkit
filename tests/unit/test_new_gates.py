@@ -27,7 +27,7 @@ def gate_tester(instance):
 
 def test_init_gate(polygon_gate):
     """Test instantiating a gate object a correct dict of properties"""
-    g = cellengine.PolygonGate(_properties=polygon_gate)
+    g = cellengine.PolygonGate(properties=polygon_gate)
     gate_tester(g)
     assert g.experiment_id == "5d38a6f79fae87499999a74b"
     assert g.x_channel == "FSC-A"
@@ -63,34 +63,6 @@ def test_create_one_gate_with_all_params(rectangle_gate):
     gate_tester(g)
 
 
-# @responses.activate
-def test_create_polygon_gate(polygon_gate):
-    # responses.add(
-    #     responses.POST,
-    #     base_url + "experiments/5d38a6f79fae87499999a74b/gates",
-    #     status=201,
-    #     json=polygon_gate,
-    # )
-    g = gate.PolygonGate.create(
-        experiment_id="5d38a6f79fae87499999a74b",
-        x_channel="FSC-A",
-        y_channel="FSC-W",
-        name="my gate",
-        x_vertices=[1, 2, 3],
-        y_vertices=[4, 5, 6],
-    )
-    gate_tester(g)
-    assert g.experiment_id == "5d38a6f79fae87499999a74b"
-    assert g.x_channel == "FSC-A"
-    assert g.y_channel == "FSC-W"
-    assert g.name == "my gate"
-    assert g.model == {
-        "polygon": {"vertices": [[1, 4], [2, 5], [3, 6]]},
-        "label": [2, 5],
-        "locked": False,
-    }
-
-
 bad_gate = {
     "__v": 0,
     "experimentId": "5d38a6f79fae87499999a74b",
@@ -122,6 +94,45 @@ def test_create_gate_with_bad_params():
     )
     with pytest.raises(RuntimeError):
         g = gate.Gate.create(bad_gate)
+
+
+@responses.activate
+def test_create_polygon_gate(polygon_gate):
+    responses.add(
+        responses.POST,
+        base_url + "experiments/5d38a6f79fae87499999a74b/gates",
+        status=201,
+        json=polygon_gate,
+    )
+    g = gate.PolygonGate.create(
+        experiment_id="5d38a6f79fae87499999a74b",
+        x_channel="FSC-A",
+        y_channel="FSC-H",
+        name="poly_gate",
+        x_vertices=[1, 2, 3],
+        y_vertices=[4, 5, 6],
+    )
+    gate_tester(g)
+    assert g.experiment_id == "5d38a6f79fae87499999a74b"
+    assert g.x_channel == "FSC-A"
+    assert g.y_channel == "FSC-H"
+    assert g.name == "poly_gate"
+    assert g.model == {
+        "label": [59456.113402061856, 193680.53608247422],
+        "locked": False,
+        "polygon": {
+            "vertices": [
+                [59456.113402061856, 184672.1855670103],
+                [141432.10309278348, 181068.84536082475],
+                [82877.82474226804, 124316.23711340204],
+                [109002.0412371134, 63960.28865979381],
+                [44141.9175257732, 76571.97938144332],
+                [27926.886597938144, 107200.37113402062],
+                [10811.0206185567, 143233.77319587627],
+                [58555.278350515466, 145936.27835051547],
+            ]
+        },
+    }
 
 
 # def test_fcs_file_and_fcs_file_id_defined(experiment, experiments, gates):
