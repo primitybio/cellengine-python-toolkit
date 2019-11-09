@@ -43,6 +43,7 @@ new_gate = {
         },
     },
     "name": "poly_gate",
+    "gid": None,
     "names": [],
     "parentPopulationId": None,
     "tailoredPerFile": False,
@@ -53,8 +54,32 @@ new_gate = {
 
 
 def test_create_one_gate_with_all_params(gates):
+    _helpers.base_delete(
+        f"experiments/{gates[2]['experimentId']}/gates/{gates[2]['_id']}"
+    )
     g = gate.Gate.create(gates[2])
     gate_tester(g)
+
+
+def test_create_polygon_gate():
+    g = gate.PolygonGate.create(
+        experiment_id="5d38a6f79fae87499999a74b",
+        x_channel="FSC-A",
+        y_channel="FSC-W",
+        name="my gate",
+        x_vertices=[1, 2, 3],
+        y_vertices=[4, 5, 6],
+    )
+    gate_tester(g)
+    assert g.experiment_id == "5d38a6f79fae87499999a74b"
+    assert g.x_channel == "FSC-A"
+    assert g.y_channel == "FSC-W"
+    assert g.name == "my gate"
+    assert g.model == {
+        "polygon": {"vertices": [[1, 4], [2, 5], [3, 6]]},
+        "label": [2, 5],
+        "locked": False,
+    }
 
 
 def test_create_one_gate_with_minimum_params():
