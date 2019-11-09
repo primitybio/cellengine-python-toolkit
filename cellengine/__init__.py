@@ -22,3 +22,6 @@ from .fcsfile import FcsFile
 
 # from .gate import Gate
 from .newGates.gates import Gate
+
+# TODO: make this import explicit
+from .newGates.gates import *

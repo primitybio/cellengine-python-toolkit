@@ -52,17 +52,17 @@ def common_gate_create(
     )
 
     body = _helpers.convert_dict(body, "snake_to_camel")
-    # res = _helpers.base_create(
-    #     gate.Gate,
-    #     url="experiments/{0}/gates".format(experiment_id),
-    #     expected_status=201,
-    #     json=body,
-    #     params={"createPopulation": create_population},
-    # )
+    res = _helpers.base_create(
+        gate.Gate,
+        url="experiments/{0}/gates".format(experiment_id),
+        expected_status=201,
+        json=body,
+        params={"createPopulation": create_population},
+    )
     # res = _helpers.session.post(
     #     url="experiments/{0}/gates".format(experiment_id),
 
-    # return res
+    return res
 
 
 def parse_fcs_file_args(experiment_id, body, tailored_per_file, fcs_file_id, fcs_file):

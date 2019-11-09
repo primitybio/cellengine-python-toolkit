@@ -2,7 +2,7 @@ from cellengine import _helpers
 import importlib
 from abc import ABC, abstractmethod
 import munch
-from ..Gates import gate_util
+from ..Gates import create_polygon_gate
 
 
 class BaseGate(ABC):
@@ -124,6 +124,43 @@ class RectangleGate(Gate):
 
 class PolygonGate(Gate):
     """Basic concrete class for polygon gates"""
+
+    @classmethod
+    def create(
+        cls,
+        experiment_id,
+        x_channel,
+        y_channel,
+        name,
+        x_vertices,
+        y_vertices,
+        label=[],
+        gid=None,
+        locked=False,
+        parent_population_id=None,
+        parent_population=None,
+        tailored_per_file=False,
+        fcs_file_id=None,
+        fcs_file=None,
+        create_population=True,
+    ):
+        return create_polygon_gate(
+            experiment_id,
+            x_channel,
+            y_channel,
+            name,
+            x_vertices,
+            y_vertices,
+            label,
+            gid,
+            locked,
+            parent_population_id,
+            parent_population,
+            tailored_per_file,
+            fcs_file_id,
+            fcs_file,
+            create_population,
+        )
 
     @property
     def model(self):
