@@ -230,6 +230,10 @@ def base_create(url, expected_status, classname=None, json=None, params=None, **
 
 def parse_response(content):
     content = content.json()
+    return parse_list_or_single(content)
+
+
+def parse_list_or_single(content):
     if type(content) is list:
         return parse_response_list(content)
     else:
@@ -237,7 +241,7 @@ def parse_response(content):
 
 
 def parse_response_list(content):
-    return [parse_response(item) for item in content]
+    return [parse_list_or_single(item) for item in content]
 
 
 def parse_population_from_gate(content):
