@@ -225,7 +225,7 @@ def base_create(url, expected_status, classname=None, json=None, params=None, **
         else:
             return data
     else:
-        raise Exception(res.content.decode())
+        raise RuntimeError(res.content.decode())
 
 
 def parse_response(content):
