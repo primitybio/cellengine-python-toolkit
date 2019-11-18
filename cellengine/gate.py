@@ -1,6 +1,7 @@
 import attr
 import numpy
 from cellengine import _helpers
+from ._helpers import convert_dict
 
 # from cellengine import Population
 import importlib
@@ -96,43 +97,41 @@ class Gate(ABC):
     names = _helpers.GetSet("names")
 
     # TODO: create_population()
+
     # @property
     # def population(self):
     #     """If the gate is associated with a population, it can be accessed here."""
     #     if self._population is not None:
     #         return Population(self._population)
 
-    # @abstractmethod
+    @property
     def model(self):
-        pass
-        # @property
-        # def model(self):
-        #     """Return an attribute-style dict of the model.
+        """Return an attribute-style dict of the model.
 
-        #     NOTE: This approach does allow users to change the model properties to
-        #     invalid values (i.e. 'rectangle' to a str from a dict). We could
-        #     prevent this by making Gate.model return a __slot__ class "Model", where each
-        #     attr of Model was built dynamically. I wrote it this way at first, but
-        #     couldn't figure out a way to write both get and set attribute-style accessors
-        #     for the class. Munch does this really nicely.
+        NOTE: This approach does allow users to change the model properties to
+        invalid values (i.e. 'rectangle' to a str from a dict). We could
+        prevent this by making Gate.model return a __slot__ class "Model", where each
+        attr of Model was built dynamically. I wrote it this way at first, but
+        couldn't figure out a way to write both get and set attribute-style accessors
+        for the class. Munch does this really nicely.
 
-        #     As it is, this relies on the API to validate the model
-        #     """
-        #     model = self._properties["model"]
-        #     if type(model) is not Gate._Munch:
-        #         self._properties["model"] = munch.munchify(model, factory=self._Munch)
-        #     return model
+        As it is, this relies on the API to validate the model
+        """
+        model = self._properties["model"]
+        if type(model) is not Gate._Munch:
+            self._properties["model"] = munch.munchify(model, factory=self._Munch)
+        return model
 
-        # @model.setter
-        # def model(self, val):
-        #     model = self._properties["model"]
-        #     model.update(val)
+    @model.setter
+    def model(self, val):
+        model = self._properties["model"]
+        model.update(val)
 
-        # class _Munch(munch.Munch):
-        #     """Extend the Munch class for a dict-like __repr__"""
+    class _Munch(munch.Munch):
+        """Extend the Munch class for a dict-like __repr__"""
 
-        # def __repr__(self):
-        #     return "{0}".format(dict.__repr__(self))
+    def __repr__(self):
+        return "{0}".format(dict.__repr__(self))
 
     def _body(self, type: str, model: dict):
         body = {
@@ -157,214 +156,7 @@ class RectangleGate(Gate):
 class PolygonGate(Gate):
     """Basic concrete class for polygon gates"""
 
-    @property
-    def model(self):
-        x_vertices = [x[0] for x in self._properties["model"]["polygon"]["vertices"]]
-        y_vertices = [y[1] for y in self._properties["model"]["polygon"]["vertices"]]
-        model = {
-            "locked": self._properties["model"]["locked"],
-            "label": self._properties["model"]["label"],
-            "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
-        }
-        body = self._body(type="PolygonGate", model=model)
+    pass
 
-        # TODO: Munch, setter
-        return body
-
-    @classmethod
-    def create(
-        cls,
-        experiment_id,
-        x_channel,
-        y_channel,
-        name,
-        x_vertices,
-        y_vertices,
-        label=[],
-        gid=None,
-        locked=False,
-        parent_population_id=None,
-        parent_population=None,
-        tailored_per_file=False,
-        fcs_file_id=None,
-        fcs_file=None,
-        create_population=True,
-    ):
-        self.experiment_id = experiment_id
-        self.experiment_id = experiment_id
-        self.x_channel = x_channel
-        self.y_channel = y_channel
-        self.name = name
-        self.x_vertices = x_vertices
-        self.y_vertices = y_vertices
-        self.label = label
-        self.gid = gid
-        self.locked = locked
-        self.parent_population_id = parent_population_id
-        self.parent_population = parent_population
-        self.tailored_per_file = tailored_per_file
-        self.fcs_file_id = fcs_file_id
-
-        return super().create(self._properties)
-
-        # body = FormatGate.create_polygon_gate(
-        #     experiment_id,
-        #     x_channel,
-        #     y_channel,
-        #     name,
-        #     x_vertices,
-        #     y_vertices,
-        #     label=[],
-        #     gid=None,
-        #     locked=False,
-        #     parent_population_id=None,
-        #     parent_population=None,
-        #     tailored_per_file=False,
-        #     fcs_file_id=None,
-        #     fcs_file=None,
-        #     create_population=True,
-        # )
-
-        return cls.create(body, create_population=create_population)
-
-
-def parse_fcs_file_args(
-    self, experiment_id, body, tailored_per_file, fcs_file_id, fcs_file
-):
-    """Find the fcs file ID if 'tailored_per_file' and either 'fcs_file' or
-    'fcs_file_id' are specified."""
-    if fcs_file is not None and fcs_file_id is not None:
-        raise ValueError("Please specify only 'fcs_file' or 'fcs_file_id'.")
-    if fcs_file is not None and tailored_per_file is True:  # lookup by name
-        _file = get_fcsfile(experiment_id, name=fcs_file)
-        fcs_file_id = _file._id
-    body["tailoredPerFile"] = tailored_per_file
-    body["fcsFileId"] = fcs_file_id
-    return body
-
-
-def snake_to_camel(self, body):
-    body = _helpers.convert_dict(body, "snake_to_camel")
-    return body
-
-
-def format_rectangle_gate(
-    self,
-    experiment_id,
-    x_channel,
-    y_channel,
-    name,
-    x1,
-    x2,
-    y1,
-    y2,
-    label=[],
-    gid=None,
-    locked=False,
-    parent_population_id=None,
-    parent_population=None,
-    tailored_per_file=False,
-    fcs_file_id=None,
-    fcs_file=None,
-    create_population=True,
-):
-    if label == []:
-        label = [numpy.mean([x1, x2]), numpy.mean([y1, y2])]
-
-    if gid is None:
-        gid = _helpers.generate_id()
-
-    model = self.model({"rectangle": {"x1": x1, "x2": x2, "y1": y1, "y2": y2}})
-
-    body = {
-        "experimentId": experiment_id,
-        "name": name,
-        "type": "RectangleGate",
-        "gid": gid,
-        "xChannel": x_channel,
-        "yChannel": y_channel,
-        "parentPopulationId": parent_population_id,
-        "model": model,
-    }
-
-    return common_gate_create(
-        experiment_id,
-        body=body,
-        tailored_per_file=tailored_per_file,
-        fcs_file_id=fcs_file_id,
-        fcs_file=fcs_file,
-        create_population=create_population,
-    )
-
-
-def format_polygon_gate(
-    experiment_id,
-    x_channel,
-    y_channel,
-    name,
-    x_vertices,
-    y_vertices,
-    label=[],
-    gid=None,
-    locked=False,
-    parent_population_id=None,
-    parent_population=None,
-    tailored_per_file=False,
-    fcs_file_id=None,
-    fcs_file=None,
-    create_population=True,
-):
-    if label == []:
-        label = [numpy.mean(x_vertices), numpy.mean(y_vertices)]
-
-    if gid is None:
-        gid = _helpers.generate_id()
-
-    model = {
-        "locked": locked,
-        "label": label,
-        "polygon": {"vertices": [[a, b] for (a, b) in zip(x_vertices, y_vertices)]},
-    }
-
-    body = {
-        "experimentId": experiment_id,
-        "name": name,
-        "type": "PolygonGate",
-        "gid": gid,
-        "xChannel": x_channel,
-        "yChannel": y_channel,
-        "parentPopulationId": parent_population_id,
-        "model": model,
-    }
-
-    return body
-
-
-def get_fcsfile(experiment_id, _id=None, name=None):
-    if _id:
-        content = _helpers.base_get(
-            "experiments/{0}/fcsfiles/{1}".format(experiment_id, _id)
-        )
-        content = FcsFile(properties=content)
-    else:
-        content = _helpers.load_fcsfile_by_name(experiment_id, name)
-    return content
-
-
-def validate_response(res):
-    try:
-        keys = [
-            "experimentId",
-            "name",
-            "type",
-            "gid",
-            "xChannel",
-            "yChannel",
-            "tailoredPerFile",
-            "fcsFileId",
-            "parentPopulationId",
-            "model",
-        ]
-        assert all([key in res.keys() for key in keys])
-    except:
-        raise RuntimeError("Invalid request: {}".format(res))
+    # @property
+    # def model
