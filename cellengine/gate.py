@@ -5,11 +5,8 @@ from ._helpers import convert_dict
 
 # from cellengine import Population
 import importlib
-from abc import ABC, abstractmethod
+from abc import ABC
 import munch
-from .Gates import *
-
-from .Gates.gate_util import common_gate_create
 
 
 @attr.s(repr=False)
@@ -133,19 +130,6 @@ class Gate(ABC):
     def __repr__(self):
         return "{0}".format(dict.__repr__(self))
 
-    def _body(self, type: str, model: dict):
-        body = {
-            "experimentId": self.experiment_id,
-            "name": self.name,
-            "type": type,
-            "gid": self.gid,
-            "xChannel": self.x_channel,
-            "yChannel": self.y_channel,
-            "parentPopulationId": self.parent_population_id,
-            "model": model,
-        }
-        return body
-
 
 class RectangleGate(Gate):
     """Basic concrete class for polygon gates"""
@@ -157,6 +141,3 @@ class PolygonGate(Gate):
     """Basic concrete class for polygon gates"""
 
     pass
-
-    # @property
-    # def model

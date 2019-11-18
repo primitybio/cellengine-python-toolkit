@@ -21,8 +21,3 @@ from .compensation import Compensation
 from .fcsfile import FcsFile
 
 from .gate import *
-
-# from .newGates.gates import Gate
-
-# # TODO: make this import explicit
-# from .newGates.gates import *
