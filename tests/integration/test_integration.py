@@ -1,3 +1,4 @@
+import os
 import logging
 import pytest
 import pandas
@@ -18,7 +19,7 @@ log = logging.getLogger(__name__)
 
 @pytest.fixture(scope="module")
 def client():
-    return cellengine.APIClient("gegnew", "testpass123")
+    return cellengine.APIClient(os.env.get("USR"), os.env.get("PWD"))
 
 
 @pytest.fixture(scope="module")

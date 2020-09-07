@@ -120,7 +120,7 @@ class FcsFile(_FcsFile):
         self, x_channel: str, y_channel: str, plot_type: str, properties: Dict = None
     ) -> Plot:
         plot = Plot.get(
-            self.experiment_id, self._id, x_channel, y_channel, plot_type, properties
+            self.experiment_id, self._id, x_channel, y_channel, plot_type, properties=properties
         )
         return plot
 
@@ -129,7 +129,7 @@ class FcsFile(_FcsFile):
         from the server on-demand the first time that this property is accessed.
 
         Args:
-            params: keyword arguments of form: [Additional Args][cellengine.ApiClient.ApiClient.download_fcs_file]
+            params: keyword arguments of form: [Additional Args][cellengine.APIClient.APIClient.download_fcs_file]
         """
         fresp = ce.APIClient().download_fcs_file(
             self.experiment_id, self._id, params=params
