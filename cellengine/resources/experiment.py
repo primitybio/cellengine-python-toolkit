@@ -226,7 +226,7 @@ class Experiment(_Experiment):
     @property
     def scalesets(self) -> List[ScaleSet]:
         """List all scalesets in the experiment."""
-        return ce.APIClient().get_scalesets(self._id)
+        return ce.APIClient().get_scaleset(self._id)
 
     def get_scaleset(
         self, _id: Optional[str] = None, name: Optional[str] = None
